@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Enterprise Invoice Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-light p-4">
+
+    <div class="container bg-white p-4 rounded shadow" style="max-width: 1300px;">
+        <h2 class="text-center mb-4 fw-bold text-dark">🧾 Ultimate Invoice Generator & Scanner</h2>
+        <hr class="mb-4">
+
+        <div class="row">
+            <div class="col-lg-4 border-end">
+                <h5 class="mb-3 fw-bold text-secondary">📸 1. Ekstrak Referensi Foto</h5>
+                <div class="mb-3">
+                    <label class="form-label small">Foto Invoice Fisik (Kamera / File):</label>
+                    <input type="file" id="imageInput" accept="image/*" class="form-control">
+                </div>
+                <div class="text-center my-3 bg-light rounded p-2" style="border: 1px dashed #ccc;">
+                    <img id="previewImage" src="" alt="Preview Gambar" class="img-fluid rounded d-none" style="max-height: 180px;" crossorigin="anonymous">
+                </div>
+                <button id="btnScan" class="btn btn-outline-primary w-100 mb-3 fw-bold" disabled>✨ Jalankan OCR (Ekstrak Teks)</button>
+                <div id="statusOcr" class="text-info small fw-bold mb-2"></div>
+                <textarea id="textResult" class="form-control bg-light" rows="12" placeholder="Teks hasil scan..."></textarea>
+            </div>
+
+            <div class="col-lg-8 ps-lg-4 mt-4 mt-lg-0">
+                <h5 class="mb-3 fw-bold text-secondary">✍️ 2. Konfigurasi Invoice Lengkap</h5>
+                
+                <div class="p-3 bg-warning bg-opacity-10 rounded border border-warning mb-4">
+                    <label class="form-label fw-bold text-dark">➡️ Pilih Jenis / Arah Invoice:</label>
+                    <div class="d-flex gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="invoiceType" id="typeOut" value="OUTGOING" checked>
+                            <label class="form-check-label fw-bold text-primary" for="typeOut">
+                                Invoice Keluar (Ditujukan ke Orang Lain / Kita Penagihnya)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="invoiceType" id="typeIn" value="INCOMING">
+                            <label class="form-check-label fw-bold text-success" for="typeIn">
+                                Invoice Masuk (Ditujukan ke Kita / Orang Lain Penagihnya)
+                            </label>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-1">*Sistem otomatis mengatur penempatan logo & format instansi penagih berdasarkan pilihan ini.</small>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 bg-light rounded border-start border-primary border-4 h-100 shadow-sm">
+                            <h6 class="fw-bold text-primary mb-3">🏢 PERUSAHAAN KITA</h6>
+                            <div class="mb-2">
+                                <label class="form-label small">Nama PT/Toko Kita</label>
+                                <input type="text" id="ourCompany" class="form-control form-control-sm" value="PT. Solusi Digital Indonesia">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">No. Telepon</label>
+                                <input type="text" id="ourPhone" class="form-control form-control-sm" value="021-5556677">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Alamat Lengkap</label>
+                                <textarea id="ourAddress" class="form-control form-control-sm" rows="2">Jl. Teknologi Canggih No. 45, Jakarta Selatan</textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Upload Logo Kita</label>
+                                <input type="file" id="ourLogoInput" accept="image/*" class="form-control form-control-sm">
+                                <img id="ourLogoPreview" src="" class="d-none" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 bg-light rounded border-start border-success border-4 h-100 shadow-sm">
+                            <h6 class="fw-bold text-success mb-3">🤝 PERUSAHAAN LAIN (KLIEN/VENDOR)</h6>
+                            <div class="mb-2">
+                                <label class="form-label small">Nama PT/Toko Lain</label>
+                                <input type="text" id="invClient" class="form-control form-control-sm" value="PT. Sukses Bersama">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">No. Telepon</label>
+                                <input type="text" id="clientPhone" class="form-control form-control-sm" value="0812-3456-7890">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Alamat Lengkap</label>
+                                <textarea id="clientAddress" class="form-control form-control-sm" rows="2">Ruko Makmur Jaya Blk. C No. 12, Surabaya</textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Upload Logo Mereka (Hanya muncul jika Invoice Masuk)</label>
+                                <input type="file" id="clientLogoInput" accept="image/*" class="form-control form-control-sm">
+                                <img id="clientLogoPreview" src="" class="d-none" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-3 my-3 shadow-sm bg-white">
+                    <h6 class="fw-bold text-dark mb-3">⚙️ Atribut & Termin Pembayaran</h6>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label small">Nomor Invoice</label>
+                            <input type="text" id="invNo" class="form-control form-control-sm" value="INV/2026/0702">
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label small">Tanggal Invoice</label>
+                            <input type="text" id="invDate" class="form-control form-control-sm" value="02 Juli 2026">
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label small">Termin (Term of Payment)</label>
+                            <select id="invTerm" class="form-control form-control-sm">
+                                <option value="Cash On Delivery (COD)">Cash On Delivery (COD)</option>
+                                <option value="Net 15 Days">Net 15 Days</option>
+                                <option value="Net 30 Days" selected>Net 30 Days</option>
+                                <option value="Net 60 Days">Net 60 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label small">Metode Pembayaran</label>
+                            <input type="text" id="invMethod" class="form-control form-control-sm" value="Transfer Bank Mandiri (A/N PT... 1234xx)">
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-dark mt-4">🛒 Rincian Item Tagihan</h6>
+                <div id="itemsContainer">
+                    <div class="row mb-2 item-row align-items-center">
+                        <div class="col-7">
+                            <input type="text" class="form-control form-control-sm item-name" value="Jasa Pembuatan Sistem Aplikasi Enterprise" placeholder="Nama Layanan / Barang">
+                        </div>
+                        <div class="col-5">
+                            <input type="number" class="form-control form-control-sm item-price" value="7500000" placeholder="Harga (Rp)">
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="btnAddItem" class="btn btn-sm btn-outline-secondary mt-1 mb-4">+ Tambah Baris</button>
+                <button id="btnDownload" class="btn btn-dark w-100 py-3 fw-bold shadow-lg">🖨️ CETAK & UNDUH PDF ELEGAN</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Binding Elemen UI
+        const imageInput = document.getElementById('imageInput');
+        const previewImage = document.getElementById('previewImage');
+        const btnScan = document.getElementById('btnScan');
+        const statusOcr = document.getElementById('statusOcr');
+        const textResult = document.getElementById('textResult');
+        const itemsContainer = document.getElementById('itemsContainer');
+        const btnAddItem = document.getElementById('btnAddItem');
+        const btnDownload = document.getElementById('btnDownload');
+
+        const ourLogoInput = document.getElementById('ourLogoInput');
+        const ourLogoPreview = document.getElementById('ourLogoPreview');
+        const clientLogoInput = document.getElementById('clientLogoInput');
+        const clientLogoPreview = document.getElementById('clientLogoPreview');
+
+        function handleImageUpload(inputEl, previewEl, callback) {
+            inputEl.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewEl.src = e.target.result;
+                        previewEl.classList.remove('d-none');
+                        if(callback) callback();
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        handleImageUpload(imageInput, previewImage, () => btnScan.disabled = false);
+        handleImageUpload(ourLogoInput, ourLogoPreview);
+        handleImageUpload(clientLogoInput, clientLogoPreview);
+
+        // Fitur OCR Scanner
+        btnScan.addEventListener('click', async () => {
+            statusOcr.innerText = "🔄 Menembak teks gambar... Mohon tunggu...";
+            textResult.value = "";
+            try {
+                const result = await Tesseract.recognize(previewImage.src, 'ind+eng', {
+                    logger: m => { if(m.status === 'recognizing') statusOcr.innerText = `🔄 Membaca teks: ${Math.round(m.progress * 100)}%`; }
+                });
+                textResult.value = result.data.text;
+                statusOcr.innerText = "✅ Selesai Scan!";
+            } catch (error) {
+                statusOcr.innerText = "❌ Gagal membaca gambar.";
+            }
+        });
+
+        btnAddItem.addEventListener('click', () => {
+            const row = document.createElement('div');
+            row.className = 'row mb-2 item-row';
+            row.innerHTML = `<div class="col-7"><input type="text" class="form-control form-control-sm item-name" placeholder="Nama Barang"></div>
+                             <div class="col-5"><input type="number" class="form-control form-control-sm item-price" placeholder="Harga (Rp)"></div>`;
+            itemsContainer.appendChild(row);
+        });
+
+        // --- ENGINE GENERATOR PDF (LENGKAP DENGAN LOGIKA DINAMIS) ---
+        btnDownload.addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+
+            // Ambil Value Form
+            const isOutgoing = document.querySelector('input[name="invoiceType"]:checked').value === 'OUTGOING';
+            
+            const ourCompany = document.getElementById('ourCompany').value;
+            const ourPhone = document.getElementById('ourPhone').value;
+            const ourAddress = document.getElementById('ourAddress').value;
+
+            const invClient = document.getElementById('invClient').value;
+            const clientPhone = document.getElementById('clientPhone').value;
+            const clientAddress = document.getElementById('clientAddress').value;
+
+            const invNo = document.getElementById('invNo').value;
+            const invDate = document.getElementById('invDate').value;
+            const invTerm = document.getElementById('invTerm').value;
+            const invMethod = document.getElementById('invMethod').value;
+
+            // Penentuan Siapa Penagih (Issuer) & Siapa Pembayar (Recipient) berdasarkan Arah Invoice
+            let senderName = isOutgoing ? ourCompany : invClient;
+            let senderPhone = isOutgoing ? ourPhone : clientPhone;
+            let senderAddress = isOutgoing ? ourAddress : clientAddress;
+            let senderLogo = isOutgoing ? ourLogoPreview : clientLogoPreview;
+
+            let receiverName = isOutgoing ? invClient : ourCompany;
+            let receiverPhone = isOutgoing ? clientPhone : ourPhone;
+            let receiverAddress = isOutgoing ? clientAddress : ourAddress;
+
+            // 1. Render Logo Penagih (Di Kiri Atas saja, yang ditagih cuma teks)
+            if (senderLogo.src && senderLogo.src !== window.location.href) {
+                doc.addImage(senderLogo.src, 'JPEG', 14, 12, 32, 16);
+            }
+
+            // 2. Info Instansi Penagih / Pengirim Invoice (Kiri Atas)
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.setTextColor(40, 40, 40);
+            doc.text(senderName, 14, 35);
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Telp: ${senderPhone}`, 14, 39);
+            
+            // Bungkus alamat jika panjang agar tidak melebar
+            const splitSenderAddr = doc.splitTextToSize(senderAddress, 65);
+            doc.text(splitSenderAddr, 14, 43);
+
+            // 3. Label INVOICE & Meta Data Utama (Kanan Atas)
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(24);
+            doc.setTextColor(26, 54, 93); // Navy
+            doc.text("INVOICE", 196, 25, { align: "right" });
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(80, 80, 80);
+            doc.text(`Invoice No : ${invNo}`, 196, 33, { align: "right" });
+            doc.text(`Tanggal     : ${invDate}`, 196, 38, { align: "right" });
+            doc.text(`Termin       : ${invTerm}`, 196, 43, { align: "right" });
+
+            // Pembatas Tengah
+            doc.setDrawColor(210, 210, 210);
+            doc.line(14, 56, 196, 56);
+
+            // 4. Info Pihak Yang Ditagih (Kiri Tengah - Bersih Tanpa Logo sesuai Request)
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(120, 120, 120);
+            doc.text("DITUJUKAN KEPADA:", 14, 64);
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.setTextColor(40, 40, 40);
+            doc.text(receiverName, 14, 70);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Telp: ${receiverPhone}`, 14, 74);
+            
+            const splitReceiverAddr = doc.splitTextToSize(receiverAddress, 100);
+            doc.text(splitReceiverAddr, 14, 78);
+
+            // 5. Header Tabel Transaksi
+            let yTable = 92;
+            doc.setFillColor(26, 54, 93);
+            doc.rect(14, yTable, 182, 8, "F");
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9.5);
+            doc.setTextColor(255, 255, 255);
+            doc.text("DESKRIPSI LAYANAN / ITEMS", 18, yTable + 5.5);
+            doc.text("TOTAL HARGA", 192, yTable + 5.5, { align: "right" });
+
+            // 6. Loop Input Item Penjualan
+            const names = document.querySelectorAll('.item-name');
+            const prices = document.querySelectorAll('.item-price');
+            
+            let y = yTable + 14;
+            let total = 0;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+
+            for (let i = 0; i < names.length; i++) {
+                const name = names[i].value;
+                const price = parseFloat(prices[i].value) || 0;
+
+                if (name.trim() !== "") {
+                    if (y > 250) { doc.addPage(); y = 20; }
+
+                    doc.setTextColor(50, 50, 50);
+                    doc.text(name, 18, y);
+                    
+                    doc.setTextColor(40, 40, 40);
+                    doc.text(`Rp ${price.toLocaleString('id-ID')}`, 192, y, { align: "right" });
+
+                    doc.setDrawColor(240, 240, 240);
+                    doc.line(14, y + 3, 196, y + 3);
+
+                    total += price;
+                    y += 10;
+                }
+            }
+
+            // 7. Kalkulasi Akhir, Metode Pembayaran, & Footer
+            y += 2;
+            doc.setDrawColor(26, 54, 93);
+            doc.line(110, y, 196, y);
+
+            // Tampilkan Info Metode Pembayaran di Kiri Bawah Tabel
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Metode Pembayaran:", 14, y + 7);
+            doc.setFont("helvetica", "normal");
+            doc.text(invMethod, 14, y + 12);
+
+            // Grand Total di Kanan Bawah
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.setTextColor(26, 54, 93);
+            doc.text("Grand Total:", 140, y + 8, { align: "right" });
+            doc.text(`Rp ${total.toLocaleString('id-ID')}`, 192, y + 8, { align: "right" });
+
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text("Invoice ini sah dicetak secara elektronik dan tidak memerlukan tanda tangan basah.", 14, 282);
+
+            // --- HALAMAN BUKTI REAL SCAN ---
+            if (previewImage.src && !previewImage.classList.contains('d-none')) {
+                doc.addPage();
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(14);
+                doc.setTextColor(100, 100, 100);
+                doc.text("LAMPIRAN: BUKTI / FOTO INVOICE FISIK ASLI", 14, 20);
+                doc.line(14, 24, 196, 24);
+                try {
+                    doc.addImage(previewImage.src, 'JPEG', 15, 32, 180, 240);
+                } catch (err) {
+                    doc.text("[Gagal melampirkan gambar fisik]", 14, 40);
+                }
+            }
+
+            doc.save(`Invoice_${invNo.replace(/\//g, '-')}.pdf`);
+        });
+    </script>
+</body>
+  </html>
+  
